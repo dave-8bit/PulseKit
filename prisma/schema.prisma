@@ -1,0 +1,79 @@
+// Prisma schema for PulseKit multi-tenant analytics.
+// Only data modeling; no business logic.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Update this to your real database connection.
+  // Keeping it as a placeholder avoids assumptions about your environment.
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String      @id @db.Uuid
+  email     String      @unique
+  created_at DateTime   @default(now())
+
+  workspaces Workspace[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id         String      @id @db.Uuid
+  user_id    String      @db.Uuid
+  name       String
+  api_token  String      @unique
+  created_at DateTime   @default(now())
+
+  user   User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  events Event[]
+  sessions Session[]
+
+  @@index([user_id])
+  @@map("workspaces")
+}
+
+model Event {
+  id          String   @id @db.Uuid
+  workspace_id String @db.Uuid
+
+  // event_id comes from the client.
+  // Stored as UUID type, but kept as a separate field from this row id.
+  event_id    String   @db.Uuid
+  event_type  String
+  timestamp   DateTime
+
+  url         String
+  user_agent  String
+  properties  Json
+
+  created_at  DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@index([workspace_id])
+  @@index([timestamp])
+  @@index([event_type])
+  @@map("events")
+}
+
+model Session {
+  id            String   @id @db.Uuid
+  workspace_id String   @db.Uuid
+
+  user_agent    String
+  ip_hash       String
+
+  started_at    DateTime
+  last_seen_at  DateTime
+
+  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@index([workspace_id])
+  @@map("sessions")
+}
+
