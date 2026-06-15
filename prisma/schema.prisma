@@ -38,14 +38,14 @@ model Workspace {
 }
 
 model Event {
-  id          String   @id @db.Uuid
-  workspace_id String @db.Uuid
+  id           String   @id @db.Uuid
+  workspace_id String   @db.Uuid
 
   // event_id comes from the client.
   // Stored as UUID type, but kept as a separate field from this row id.
-  event_id    String   @db.Uuid
-  event_type  String
-  timestamp   DateTime
+  event_id   String   @db.Uuid
+  event_type String
+  timestamp  DateTime
 
   url         String
   user_agent  String
@@ -55,9 +55,10 @@ model Event {
 
   workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
 
-  @@index([workspace_id])
-  @@index([timestamp])
-  @@index([event_type])
+  @@unique([workspace_id, event_id])
+  @@index([workspace_id, timestamp])
+  @@index([workspace_id, event_type])
+
   @@map("events")
 }
 
@@ -67,13 +68,16 @@ model Session {
 
   user_agent    String
   ip_hash       String
+  anonymous_id  String?
 
   started_at    DateTime
   last_seen_at  DateTime
 
   workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
 
-  @@index([workspace_id])
+  @@index([workspace_id, started_at])
+
   @@map("sessions")
 }
+
 
