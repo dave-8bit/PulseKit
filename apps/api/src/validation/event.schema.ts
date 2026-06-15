@@ -7,7 +7,9 @@
 
 import { z } from "zod";
 
-import type { CoreEvent, CoreEventType } from "../types/event.types";
+import type { CoreEvent } from "../types/event.types";
+import { CoreEventType } from "../types/event.types";
+
 
 // Zod schema for CoreEvent.
 // Note: we validate only shape/primitive safety here (not database/API concerns).
