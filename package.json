@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/dave-8bit/PulseKit/issues"
   },
-  "homepage": "https://github.com/dave-8bit/PulseKit#readme"
+  "homepage": "https://github.com/dave-8bit/PulseKit#readme",
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
 }
