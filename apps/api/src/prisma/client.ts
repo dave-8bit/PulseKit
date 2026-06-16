@@ -1,26 +1,13 @@
-// NOTE: This project root installs @prisma/client, but the PrismaClient types
-// are generated under `.prisma` and may not be available at author-time.
-//
-// To keep ingestion code compiling in this repo snapshot, we import PrismaClient
-// dynamically at runtime and provide a typed placeholder.
+import { PrismaClient } from "@prisma/client";
 
-export type PrismaClientLike = {
-  event: {
-    create: (args: unknown) => Promise<unknown>;
-    findUnique: (args: unknown) => Promise<unknown>;
-  };
-};
+// Singleton Prisma client to avoid exhausting database connections during dev
+// and to behave correctly with hot reload.
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-let prisma: PrismaClientLike;
+export const prisma: PrismaClient =
+  globalForPrisma.prisma ?? new PrismaClient();
 
-async function getPrisma(): Promise<PrismaClientLike> {
-  if (prisma) return prisma;
-
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { PrismaClient } = require("@prisma/client");
-  prisma = new PrismaClient({});
-  return prisma;
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
 }
-
-export const prismaClientPromise = getPrisma();
 
