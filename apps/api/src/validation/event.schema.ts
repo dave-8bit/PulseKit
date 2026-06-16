@@ -7,9 +7,9 @@
 
 import { z } from "zod";
 
-import type { Prisma } from "@prisma/client";
 
 import type { CoreEvent } from "../types/event.types";
+
 import { CoreEventType } from "../types/event.types";
 
 // Zod schema for CoreEvent.
@@ -22,8 +22,10 @@ export const eventSchema = z.object({
   url: z.string(),
   user_agent: z.string(),
 
-  // Prisma JSON input type (runtime remains a safe JSON-ish object bag).
-  properties: z.record(z.unknown()) as unknown as Prisma.InputJsonValue,
+  // JSON properties bag (Prisma accepts nested JSON: object/array/scalar/null)
+  properties: z.any(),
+
+
 });
 
 
