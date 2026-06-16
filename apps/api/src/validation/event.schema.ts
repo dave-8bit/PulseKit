@@ -23,8 +23,9 @@ export const eventSchema = z.object({
   user_agent: z.string(),
 
   // Prisma JSON input type (runtime remains a safe JSON-ish object bag).
-  properties: z.record(z.unknown()) as z.ZodType<Prisma.InputJsonValue>,
+  properties: z.record(z.unknown()) as unknown as Prisma.InputJsonValue,
 });
+
 
 export type CoreEventInput = z.input<typeof eventSchema>;
 export type CoreEventOutput = z.infer<typeof eventSchema>;
