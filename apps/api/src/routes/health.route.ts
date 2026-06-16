@@ -10,10 +10,16 @@ import { Router } from "express";
 
 export const healthRouter = Router();
 
-healthRouter.get("/health", (_req, res) => {
+import { checkDatabaseConnection } from "../services/health.service";
+
+healthRouter.get("/health", async (_req, res) => {
+  const database = await checkDatabaseConnection();
+
   res.status(200).json({
     success: true,
     service: "pulsekit-api",
+    ...database,
   });
 });
+
 
