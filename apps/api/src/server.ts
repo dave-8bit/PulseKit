@@ -2,6 +2,7 @@ import express from "express";
 
 import { eventsRouter } from "./routes/events.route";
 
+
 // Minimal ingestion server for analytics events.
 const app = express();
 

@@ -37,15 +37,27 @@ model Workspace {
   @@map("workspaces")
 }
 
+enum CoreEventType {
+  page_view
+  click
+  custom_event
+}
+
 model Event {
   id           String   @id @db.Uuid
   workspace_id String   @db.Uuid
 
-  // event_id comes from the client.
-  // Stored as UUID type, but kept as a separate field from this row id.
+  // event_id comes from the client (used for client de-duplication).
   event_id   String   @db.Uuid
-  event_type String
+
+  // event_type is the analytics discriminator.
+  event_type CoreEventType
+
+  // Client-side event time (may be skewed; do not rely on it for ordering).
   timestamp  DateTime
+
+  // Server-side ingestion time (authoritative for ingestion/processing order).
+  server_received_at DateTime @default(now())
 
   url         String
   user_agent  String
@@ -61,6 +73,7 @@ model Event {
 
   @@map("events")
 }
+
 
 model Session {
   id            String   @id @db.Uuid
