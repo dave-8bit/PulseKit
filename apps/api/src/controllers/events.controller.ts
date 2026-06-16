@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 
 import { prisma } from "../prisma/client";
-import type { CoreEvent } from "../types/event.types";
 import { CoreEventValidator } from "../validation/event.schema";
 import { toPrismaEvent } from "../mappers/event.mapper";
 
@@ -9,7 +8,10 @@ import { toPrismaEvent } from "../mappers/event.mapper";
 export const ingestEvent = async (req: Request, res: Response): Promise<void> => {
   // Do not trust untrusted client input; validate at the boundary.
   try {
-    const parsedEvent = CoreEventValidator.parse(req.body) as CoreEvent;
+
+    const parsedEvent = CoreEventValidator.parse(req.body);
+
+
 
     const apiToken = (req.body as { api_token?: unknown }).api_token;
     if (typeof apiToken !== "string" || apiToken.length === 0) {
@@ -38,14 +40,10 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
     const workspaceId = workspace.id;
 
     const prismaEventInput = toPrismaEvent({
-      event_id: parsedEvent.event_id,
-      event_type: parsedEvent.event_type,
-      timestamp: parsedEvent.timestamp,
-      url: parsedEvent.url,
-      user_agent: parsedEvent.user_agent,
-      properties: parsedEvent.properties,
+      ...parsedEvent,
       workspace_id: workspaceId,
     });
+
 
 
     // Idempotency: prevent duplicates using the DB unique constraint
