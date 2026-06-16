@@ -13,7 +13,8 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
 
 
 
-    const apiToken = (req.body as { api_token?: unknown }).api_token;
+    const apiToken = req.apiToken;
+
     if (typeof apiToken !== "string" || apiToken.length === 0) {
       res.status(401).json({
         success: false,
