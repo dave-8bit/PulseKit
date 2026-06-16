@@ -1,6 +1,16 @@
 import type { Prisma } from "@prisma/client";
 
-import type { CoreEventInput } from "../validation/event.schema";
+import type { CoreEventInput } from "../types/event.types";
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12,6 +22,7 @@ import type { CoreEventInput } from "../validation/event.schema";
  * CoreEventInput is converted into the Prisma shape.
  */
 export function toPrismaEvent(input: CoreEventInput): Prisma.EventCreateInput {
+
   return {
     event_id: input.event_id,
     event_type: input.event_type,

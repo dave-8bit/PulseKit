@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { prisma } from "../prisma/client";
 import type { CoreEvent } from "../types/event.types";
 import { CoreEventValidator } from "../validation/event.schema";
+import { toPrismaEvent } from "../mappers/event.mapper";
 
 // POST handler for analytics ingestion.
 export const ingestEvent = async (req: Request, res: Response): Promise<void> => {
@@ -36,6 +37,17 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
     // Workspace id is derived only from a validated api_token.
     const workspaceId = workspace.id;
 
+    const prismaEventInput = toPrismaEvent({
+      event_id: parsedEvent.event_id,
+      event_type: parsedEvent.event_type,
+      timestamp: parsedEvent.timestamp,
+      url: parsedEvent.url,
+      user_agent: parsedEvent.user_agent,
+      properties: parsedEvent.properties,
+      workspace_id: workspaceId,
+    });
+
+
     // Idempotency: prevent duplicates using the DB unique constraint
     // on (workspace_id, event_id).
     const existingEvent = await prisma.event.findUnique({
@@ -47,7 +59,6 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
       },
     });
 
-
     if (existingEvent) {
       res.status(200).json({
         success: true,
@@ -57,19 +68,8 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
     }
 
     const storedEvent = await prisma.event.create({
-      data: {
-        event_id: parsedEvent.event_id,
-        workspace_id: workspaceId,
-
-        event_type: parsedEvent.event_type,
-        timestamp: new Date(parsedEvent.timestamp),
-        url: parsedEvent.url,
-        user_agent: parsedEvent.user_agent,
-        properties: parsedEvent.properties,
-      },
+      data: prismaEventInput,
     });
-
-
 
     res.status(200).json({
       success: true,
@@ -82,5 +82,4 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
     });
   }
 };
-
 
