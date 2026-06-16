@@ -1,9 +1,10 @@
 import type { Request, Response } from "express";
 
-import { prisma } from "../prisma/client";
 import { findWorkspaceByApiToken } from "../services/workspace.service";
+import { createEvent, findExistingEvent } from "../services/event.service";
 import { CoreEventValidator } from "../validation/event.schema";
 import { toPrismaEvent } from "../mappers/event.mapper";
+
 
 /**
  * POST /events controller
@@ -65,14 +66,14 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
 
     // Idempotency:
     // Prevent duplicates using the DB unique constraint on (workspace_id, event_id).
-    const existingEvent = await prisma.event.findUnique({
-      where: {
-        workspace_id_event_id: {
-          workspace_id: workspaceId,
-          event_id: parsedEvent.event_id,
-        },
-      },
-    });
+    //
+    // The logic for querying/creating events lives in a service so this
+    // controller remains focused on HTTP concerns.
+    const existingEvent = await findExistingEvent(
+      workspaceId,
+      parsedEvent.event_id
+    );
+
 
     if (existingEvent) {
       res.status(200).json({
@@ -82,9 +83,8 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const storedEvent = await prisma.event.create({
-      data: prismaEventInput,
-    });
+    const storedEvent = await createEvent(prismaEventInput);
+
 
     res.status(200).json({
       success: true,
