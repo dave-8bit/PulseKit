@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client";
+import type { Prisma } from "@prisma/client";
 
 /**
  * Service-layer helpers for Event persistence.
@@ -35,17 +36,16 @@ export async function findExistingEvent(
 /**
  * Create a new event.
  *
- * Note:
- * - We accept `eventData` as `Prisma.EventCreateInput`.
- * - That keeps this service generic: controllers can build the input using
- *   validated payloads + mappers, while the service handles the DB insert.
+ * Why the input type matters:
+ * - By accepting `Prisma.EventCreateInput` we keep this service strongly typed.
+ * - That reduces technical debt (no `any`) and helps TypeScript catch mistakes
+ *   at compile time.
  */
 export async function createEvent(
-  eventData: any
+  eventData: Prisma.EventCreateInput
 ) {
   return prisma.event.create({
     data: eventData,
   });
 }
-
 
