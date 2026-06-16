@@ -37,10 +37,10 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
         timestamp: new Date(parsedEvent.timestamp),
         url: parsedEvent.url,
         user_agent: parsedEvent.user_agent,
-        properties: parsedEvent.properties as unknown as Record<string, unknown>,
-
+        properties: parsedEvent.properties,
       },
     });
+
 
     res.status(200).json({
       success: true,

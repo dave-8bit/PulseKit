@@ -21,14 +21,18 @@ export type UUIDv4 = string & { readonly __brand: "uuidv4" };
 export type ISO8601Timestamp = string & { readonly __brand: "iso8601" };
 export type EventURL = string & { readonly __brand: "event_url" };
 
+import type { Prisma } from "@prisma/client";
+
 /**
  * Properties bag for future extensibility.
  *
- * - Must remain strictly typed: no `any`.
- * - Accepts untrusted client input safely by keeping the value type
- *   opaque/unknown at this boundary.
+ * Uses Prisma-compatible JSON input type so the ingestion layer can be
+ * stored without additional casting.
  */
-export type CoreEventProperties = Record<string, unknown>;
+export type CoreEventProperties = Prisma.InputJsonValue;
+
+
+
 
 /**
  * Base event shape shared by all core event types.

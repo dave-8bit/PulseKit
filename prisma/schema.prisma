@@ -44,8 +44,9 @@ enum CoreEventType {
 }
 
 model Event {
-  id           String   @id @db.Uuid
+  id           String   @id @default(uuid()) @db.Uuid
   workspace_id String   @db.Uuid
+
 
   // event_id comes from the client (used for client de-duplication).
   event_id   String   @db.Uuid
