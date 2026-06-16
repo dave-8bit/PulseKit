@@ -7,9 +7,10 @@
 
 import { z } from "zod";
 
+import type { Prisma } from "@prisma/client";
+
 import type { CoreEvent } from "../types/event.types";
 import { CoreEventType } from "../types/event.types";
-
 
 // Zod schema for CoreEvent.
 // Note: we validate only shape/primitive safety here (not database/API concerns).
@@ -20,7 +21,9 @@ export const eventSchema = z.object({
   timestamp: z.string(),
   url: z.string(),
   user_agent: z.string(),
-  properties: z.record(z.unknown()),
+
+  // Prisma JSON input type (runtime remains a safe JSON-ish object bag).
+  properties: z.record(z.unknown()) as z.ZodType<Prisma.InputJsonValue>,
 });
 
 export type CoreEventInput = z.input<typeof eventSchema>;
@@ -34,4 +37,5 @@ export const CoreEventValidator = {
     return eventSchema.parse(input) as CoreEvent;
   },
 };
+
 

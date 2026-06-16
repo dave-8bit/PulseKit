@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
-import type { CoreEventInput } from "../types/event.types";
+import type { CoreEventInput } from "../validation/event.schema";
+
 
 
 
@@ -29,7 +30,8 @@ export function toPrismaEvent(input: CoreEventInput): Prisma.EventCreateInput {
     timestamp: new Date(input.timestamp),
     url: input.url,
     user_agent: input.user_agent,
-    properties: input.properties as Prisma.InputJsonValue,
+    properties: input.properties as unknown as Prisma.InputJsonValue,
+
     workspace: {
       connect: {
         id: input.workspace_id,
