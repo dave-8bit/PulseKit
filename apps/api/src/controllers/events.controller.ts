@@ -21,11 +21,13 @@ import { toPrismaEvent } from "../mappers/event.mapper";
 export const ingestEvent = async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate the incoming event payload at the boundary.
-    // If the payload is invalid, we return 400.
+    // If the payload is invalid, return 400 without crashing.
     const parsedEvent = CoreEventValidator.parse(req.body);
 
+
     // The token was validated by validateApiToken middleware.
-    const apiToken = req.apiToken;
+    const apiToken = (req as Request & { apiToken?: string }).apiToken;
+
 
     // Defensive check: keep behavior the same even if middleware is ever
     // mounted incorrectly.
@@ -90,7 +92,7 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
       success: true,
       event: storedEvent,
     });
-  } catch {
+  } catch (_err) {
     res.status(400).json({
       success: false,
       error: "Invalid event payload",

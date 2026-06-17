@@ -1,6 +1,6 @@
 import express from "express";
 
-import { apiRouter } from "./routes/index";
+import { apiRouter } from "./routes/index.js";
 
 
 // Minimal ingestion server for analytics events.
