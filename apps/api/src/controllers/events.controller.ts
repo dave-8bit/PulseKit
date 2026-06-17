@@ -24,7 +24,6 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
     // If the payload is invalid, return 400 without crashing.
     const parsedEvent = CoreEventValidator.parse(req.body);
 
-
     // The token was validated by validateApiToken middleware.
     const apiToken = (req as Request & { apiToken?: string }).apiToken;
 
@@ -49,49 +48,68 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
     const workspace = await findWorkspaceByApiToken(apiToken);
 
     if (!workspace) {
-      res.status(401).json({
+      res.status(403).json({
         success: false,
-        error: "Unauthorized",
+        error: "Forbidden",
       });
       return;
     }
+
 
     // SECURITY:
     // Never trust workspace identifiers from the client.
     // The workspace id is derived only from a validated API token.
     const workspaceId = workspace.id;
 
+    // Idempotency:
+    // Prevent duplicates using the DB unique constraint on (workspace_id, event_id).
+    //
+    // REQUIRED strict order:
+    // 1) Duplicate check (MUST happen BEFORE database insert)
+    // 2) Transform event
+    // 3) Insert event
+    const existingEvent = await findExistingEvent(
+      parsedEvent.event_id,
+      workspaceId
+    );
+
+    if (existingEvent) {
+      res.status(409).json({
+        success: false,
+        error: "Duplicate event",
+      });
+      return;
+    }
+
+    // Transform event
     const prismaEventInput = toPrismaEvent({
       ...parsedEvent,
       workspace_id: workspaceId,
     });
 
-    // Idempotency:
-    // Prevent duplicates using the DB unique constraint on (workspace_id, event_id).
-    //
-    // The logic for querying/creating events lives in a service so this
-    // controller remains focused on HTTP concerns.
-    const existingEvent = await findExistingEvent(
-      workspaceId,
-      parsedEvent.event_id
-    );
-
-
-    if (existingEvent) {
+    // Insert event
+    try {
+      const storedEvent = await createEvent(prismaEventInput);
       res.status(200).json({
         success: true,
-        event: existingEvent,
+        event: storedEvent,
       });
-      return;
+    } catch (err: unknown) {
+      // Race-condition safe behavior:
+      // If two identical requests arrive simultaneously, the second may
+      // fail due to the DB unique constraint.
+      // Prisma unique constraint violation code is typically `P2002`.
+      const prismaErr = err as { code?: string };
+      if (prismaErr?.code === "P2002") {
+        res.status(409).json({
+          success: false,
+          error: "Duplicate event",
+        });
+        return;
+      }
+
+      throw err;
     }
-
-    const storedEvent = await createEvent(prismaEventInput);
-
-
-    res.status(200).json({
-      success: true,
-      event: storedEvent,
-    });
   } catch (_err) {
     res.status(400).json({
       success: false,
