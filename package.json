@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-"scripts": {
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed:workspace": "tsx scripts/seed-workspace.ts"
   },
@@ -20,6 +20,7 @@
   "homepage": "https://github.com/dave-8bit/PulseKit#readme",
   "devDependencies": {
     "prisma": "^5.22.0",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   },
   "dependencies": {
