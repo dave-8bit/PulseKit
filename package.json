@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed:workspace": "tsx scripts/seed-workspace.ts"
+    "seed:workspace": "tsx scripts/seed-workspace.ts",
+    "dev:api": "tsx apps/api/src/server.ts",
+    "start:api": "node -r ts-node/register apps/api/src/server.ts"
   },
   "repository": {
     "type": "git",
@@ -19,11 +21,13 @@
   },
   "homepage": "https://github.com/dave-8bit/PulseKit#readme",
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "prisma": "^5.22.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@prisma/client": "^5.22.0",
+    "express": "^5.2.1"
   }
 }
