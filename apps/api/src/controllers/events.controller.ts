@@ -69,8 +69,8 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
     // 2) Transform event
     // 3) Insert event
     const existingEvent = await findExistingEvent(
-      parsedEvent.event_id,
-      workspaceId
+      workspaceId,
+      parsedEvent.event_id
     );
 
     if (existingEvent) {
