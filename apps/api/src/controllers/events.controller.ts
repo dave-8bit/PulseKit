@@ -1,9 +1,14 @@
 import type { Request, Response } from "express";
 
+import { ZodError } from "zod";
+
 import { findWorkspaceByApiToken } from "../services/workspace.service";
 import { createEvent, findExistingEvent } from "../services/event.service";
 import { CoreEventValidator } from "../validation/event.schema";
 import { toPrismaEvent } from "../mappers/event.mapper";
+
+
+
 
 
 /**
@@ -110,11 +115,21 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
 
       throw err;
     }
-  } catch (_err) {
+  } catch (err) {
+    if (err instanceof ZodError) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid event payload",
+        issues: err.issues,
+      });
+      return;
+    }
+
     res.status(400).json({
       success: false,
       error: "Invalid event payload",
     });
   }
 };
+
 
