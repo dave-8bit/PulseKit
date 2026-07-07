@@ -1,9 +1,10 @@
-import { CoreEventType, type CoreEventProperties } from "../../apps/api/src/types/event.types";
+import { CoreEventType, type CoreEventProperties } from "../event.contract";
 
 /**
  * Client-facing payload the browser/SDK sends to the backend.
  * IMPORTANT: never include workspace_id.
  */
+
 export interface ClientEventPayload {
   event_id: string;
   event_type: CoreEventType;

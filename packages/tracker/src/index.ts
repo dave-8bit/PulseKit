@@ -1,4 +1,4 @@
-export { CoreEventType } from "../../apps/api/src/types/event.types";
+export { CoreEventType } from "../event.contract";
 
 export { init } from "./init";
 export { track } from "./track";
