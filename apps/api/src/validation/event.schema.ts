@@ -15,7 +15,7 @@ import { CoreEventType } from "../types/event.types";
 // Zod schema for CoreEvent.
 // Note: we validate only shape/primitive safety here (not database/API concerns).
 export const eventSchema = z.object({
-  event_id: z.string(),
+  event_id: z.string().uuid(),
   workspace_id: z.string(),
   event_type: z.nativeEnum(CoreEventType),
   timestamp: z.string(),

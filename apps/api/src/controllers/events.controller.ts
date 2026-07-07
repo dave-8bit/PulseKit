@@ -116,6 +116,9 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
       throw err;
     }
   } catch (err) {
+    console.error(err);
+    console.error(err?.constructor?.name);
+
     if (err instanceof ZodError) {
       res.status(400).json({
         success: false,
@@ -131,5 +134,6 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
     });
   }
 };
+
 
 
