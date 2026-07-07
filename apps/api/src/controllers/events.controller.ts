@@ -25,12 +25,13 @@ import { toPrismaEvent } from "../mappers/event.mapper";
  */
 export const ingestEvent = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Validate the incoming event payload at the boundary.
-    // If the payload is invalid, return 400 without crashing.
-    const parsedEvent = CoreEventValidator.parse(req.body);
-
     // The token was validated by validateApiToken middleware.
     const apiToken = (req as Request & { apiToken?: string }).apiToken;
+
+    // Validate the incoming client payload at the boundary.
+    // workspace_id is derived from the validated api token (not from the client).
+    const parsedClientEvent = CoreEventValidator.parse(req.body);
+
 
 
     // Defensive check: keep behavior the same even if middleware is ever
@@ -75,10 +76,11 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
     // 3) Insert event
     const existingEvent = await findExistingEvent(
       workspaceId,
-      parsedEvent.event_id
+      parsedClientEvent.event_id
     );
 
     if (existingEvent) {
+
       res.status(409).json({
         success: false,
         error: "Duplicate event",
@@ -86,11 +88,15 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Transform event
-    const prismaEventInput = toPrismaEvent({
-      ...parsedEvent,
+    // Transform event (construct internal persisted event)
+    const internalEvent = {
+      ...parsedClientEvent,
       workspace_id: workspaceId,
-    });
+    };
+
+    const prismaEventInput = toPrismaEvent(internalEvent);
+
+
 
     // Insert event
     try {

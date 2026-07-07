@@ -1,12 +1,14 @@
 import type { Prisma } from "@prisma/client";
 
-import type { CoreEventInput } from "../validation/event.schema";
+import type { InternalEvent } from "../types/event.types";
 
 /**
  * Architectural rule: this mapper is the ONLY valid place where
- * CoreEventInput is converted into the Prisma shape.
+ * InternalEvent is converted into the Prisma shape.
  */
 function isValidUuidV4(value: string): boolean {
+
+
   // Strict RFC 4122 v4 UUID format check.
   return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
@@ -14,8 +16,9 @@ function isValidUuidV4(value: string): boolean {
 /**
  * Pure mapping from validated CoreEventInput into Prisma EventCreateInput.
  */
-export function toPrismaEvent(input: CoreEventInput): Prisma.EventCreateInput {
+export function toPrismaEvent(input: InternalEvent): Prisma.EventCreateInput {
   const eventId = isValidUuidV4(input.event_id) ? input.event_id : crypto.randomUUID();
+
 
   return {
     event_id: eventId as unknown as string,

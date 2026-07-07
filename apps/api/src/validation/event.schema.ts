@@ -16,7 +16,6 @@ import { CoreEventType } from "../types/event.types";
 // Note: we validate only shape/primitive safety here (not database/API concerns).
 export const eventSchema = z.object({
   event_id: z.string().uuid(),
-  workspace_id: z.string(),
   event_type: z.nativeEnum(CoreEventType),
   timestamp: z.string(),
   url: z.string(),
@@ -24,13 +23,11 @@ export const eventSchema = z.object({
 
   // JSON properties bag (Prisma accepts nested JSON: object/array/scalar/null)
   properties: z.any(),
-
-
 });
-
 
 export type CoreEventInput = z.input<typeof eventSchema>;
 export type CoreEventOutput = z.infer<typeof eventSchema>;
+
 
 /**
  * Wrapper around schema.parse to provide a single validation entry point.
@@ -40,5 +37,6 @@ export const CoreEventValidator = {
     return eventSchema.parse(input) as CoreEvent;
   },
 };
+
 
 

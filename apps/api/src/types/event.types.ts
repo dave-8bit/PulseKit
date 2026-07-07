@@ -37,12 +37,14 @@ export type CoreEventProperties = Prisma.InputJsonValue;
 /**
  * Base event shape shared by all core event types.
  */
-export interface BaseEvent {
+/**
+ * Client-facing event shape (what the SDK/browser sends).
+ *
+ * IMPORTANT: this must NOT contain workspace_id.
+ */
+export interface ClientEvent {
   /** UUID v4 string. */
   event_id: UUIDv4;
-
-  /** Workspace identifier. */
-  workspace_id: string;
 
   /** Discriminator for the event kind. */
   event_type: CoreEventType;
@@ -61,10 +63,16 @@ export interface BaseEvent {
 }
 
 /**
- * Canonical union of all core event variants.
- *
- * This remains types-only and enables future extension while preserving
- * the required base fields.
+ * Internal persisted event shape (what the server stores).
  */
-export type CoreEvent = BaseEvent;
+export interface InternalEvent extends ClientEvent {
+  /** Workspace identifier (derived exclusively from api token). */
+  workspace_id: string;
+}
+
+/**
+ * Backwards-compatible alias for internal persisted events.
+ */
+export type CoreEvent = InternalEvent;
+
 
