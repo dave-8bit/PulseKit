@@ -1,0 +1,21 @@
+{
+  "name": "@pulsekit/tracker",
+  "version": "0.0.0",
+  "private": false,
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist/**",
+    "event.contract.ts",
+    "README.md"
+  ]
+}
+
