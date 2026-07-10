@@ -16,6 +16,13 @@
     "dist/**",
     "event.contract.ts",
     "README.md"
-  ]
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0"
+  }
 }
+
 
