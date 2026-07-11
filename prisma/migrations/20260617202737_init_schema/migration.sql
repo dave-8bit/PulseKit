@@ -1,3 +1,4 @@
+
 -- CreateEnum
 CREATE TYPE "CoreEventType" AS ENUM ('page_view', 'click', 'custom_event');
 
