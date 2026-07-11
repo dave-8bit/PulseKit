@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PulseKit Tracker Test Harness</title>
+  </head>
+  <body>
+    <script type="module">
+      // Minimal browser test harness for @pulsekit/tracker.
+      // Loads the built ESM output from packages/tracker/dist.
+
+      import { init, track, CoreEventType } from './packages/tracker/dist/index.js';
+
+      const apiToken = 'PASTE_API_TOKEN_HERE';
+      const endpoint = 'http://localhost:4000/events';
+
+      init({ apiToken, endpoint });
+
+      try {
+        await track(CoreEventType.page_view, { path: '/' });
+        console.log('PulseKit tracker: track(page_view) success');
+      } catch (err) {
+        console.error('PulseKit tracker: track(page_view) failed', err);
+      }
+    </script>
+  </body>
+</html>
+

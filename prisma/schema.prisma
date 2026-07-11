@@ -1,40 +1,66 @@
-// Prisma schema for PulseKit multi-tenant analytics.
-// Only data modeling; no business logic.
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  // Update this to your real database connection.
-  // Keeping it as a placeholder avoids assumptions about your environment.
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String      @id @db.Uuid
-  email     String      @unique
-  created_at DateTime   @default(now())
-
+  id         String      @id @db.Uuid
+  email      String      @unique
+  created_at DateTime    @default(now())
   workspaces Workspace[]
 
   @@map("users")
 }
 
 model Workspace {
-  id         String      @id @db.Uuid
-  user_id    String      @db.Uuid
+  id         String    @id @db.Uuid
+  user_id    String    @db.Uuid
   name       String
-  api_token  String      @unique
-  created_at DateTime   @default(now())
-
-  user   User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  events Event[]
-  sessions Session[]
+  api_token  String    @unique
+  created_at DateTime  @default(now())
+  events     Event[]
+  sessions   Session[]
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("workspaces")
+}
+
+model Event {
+  id                 String        @id @default(uuid()) @db.Uuid
+  workspace_id       String        @db.Uuid
+  event_id           String        @db.Uuid
+  event_type         CoreEventType
+  timestamp          DateTime
+  server_received_at DateTime      @default(now())
+  url                String
+  user_agent         String
+  properties         Json
+  created_at         DateTime      @default(now())
+  workspace          Workspace     @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@unique([workspace_id, event_id])
+  @@index([workspace_id, timestamp])
+  @@index([workspace_id, event_type])
+  @@map("events")
+}
+
+model Session {
+  id           String    @id @db.Uuid
+  workspace_id String    @db.Uuid
+  user_agent   String
+  ip_hash      String
+  anonymous_id String?
+  started_at   DateTime
+  last_seen_at DateTime
+  workspace    Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@index([workspace_id, started_at])
+  @@map("sessions")
 }
 
 enum CoreEventType {
@@ -42,56 +68,3 @@ enum CoreEventType {
   click
   custom_event
 }
-
-model Event {
-  id           String   @id @default(uuid()) @db.Uuid
-  workspace_id String   @db.Uuid
-
-
-  // event_id comes from the client (used for client de-duplication).
-  event_id   String   @db.Uuid
-
-  // event_type is the analytics discriminator.
-  event_type CoreEventType
-
-  // Client-side event time (may be skewed; do not rely on it for ordering).
-  timestamp  DateTime
-
-  // Server-side ingestion time (authoritative for ingestion/processing order).
-  server_received_at DateTime @default(now())
-
-  url         String
-  user_agent  String
-  properties  Json
-
-  created_at  DateTime @default(now())
-
-  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
-
-  @@unique([workspace_id, event_id])
-  @@index([workspace_id, timestamp])
-  @@index([workspace_id, event_type])
-
-  @@map("events")
-}
-
-
-model Session {
-  id            String   @id @db.Uuid
-  workspace_id String   @db.Uuid
-
-  user_agent    String
-  ip_hash       String
-  anonymous_id  String?
-
-  started_at    DateTime
-  last_seen_at  DateTime
-
-  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
-
-  @@index([workspace_id, started_at])
-
-  @@map("sessions")
-}
-
-
