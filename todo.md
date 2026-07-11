@@ -1,7 +1,8 @@
-# TODO
+# TODO - CORS for API
 
-- [ ] Implement Phase 2 idempotency enforcement in `apps/api/src/controllers/events.controller.ts` only:
-  - [ ] Reorder logic: workspace resolution first, then duplicate check (before mapping/insert)
-  - [ ] On duplicate: return 409 with `{ success:false, error:"Duplicate event" }`
-  - [ ] Ensure race-safety: catch Prisma unique-constraint violation on create and return 409
+- [ ] Inspect `apps/api/src/server.ts` for where to inject CORS
+- [ ] Install `cors` dependency at repo root
+- [ ] Edit `apps/api/src/server.ts` to add CORS middleware with required origins/methods/headers/credentials
+- [ ] Sanity-check TypeScript build / dev server startup
+- [ ] Verify expected CORS behavior (preflight + allowed origins)
 

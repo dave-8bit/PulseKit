@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { type NextFunction, type Request, type Response } from "express";
+import cors from "cors";
 
 import { apiRouter } from "./routes/index.js";
 import { prisma } from "./prisma/client";
@@ -11,6 +12,20 @@ const app = express();
 // Uses CommonJS require to avoid needing ESM flags.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require("dotenv/config");
+
+// CORS: restrict browser access to known local dev origins.
+app.use(
+  cors({
+    origin: [
+      "http://127.0.0.1:5500",
+      "http://localhost:5500",
+      "http://localhost:3000",
+    ],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+    credentials: false,
+  })
+);
 
 // Request JSON parsing
 app.use(express.json({ limit: "1mb" }));
