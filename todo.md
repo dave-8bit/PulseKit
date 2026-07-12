@@ -1,8 +1,5 @@
-# TODO - CORS for API
-
-- [ ] Inspect `apps/api/src/server.ts` for where to inject CORS
-- [ ] Install `cors` dependency at repo root
-- [ ] Edit `apps/api/src/server.ts` to add CORS middleware with required origins/methods/headers/credentials
-- [ ] Sanity-check TypeScript build / dev server startup
-- [ ] Verify expected CORS behavior (preflight + allowed origins)
+# TODO
+- [ ] Inspect apps/api/src/services/analytics.service.ts for raw SQL workspace_id comparisons.
+- [ ] Update only raw SQL comparisons to cast workspace_id parameter to uuid (keep parameterized/safe).
+- [ ] Run TypeScript/Prisma checks (if available) to ensure no build errors.
 

@@ -42,7 +42,7 @@ export async function getEventsByType(filter: AnalyticsFilter) {
   const rows = await prisma.$queryRaw<Array<{ event_type: string; count: bigint }>>`
     SELECT event_type, COUNT(*)::bigint AS count
     FROM events
-    WHERE workspace_id = ${filter.workspaceId}
+    WHERE workspace_id = ${filter.workspaceId}::uuid
       ${start ? Prisma.sql`AND timestamp >= ${start}` : Prisma.empty}
       ${end ? Prisma.sql`AND timestamp <= ${end}` : Prisma.empty}
     GROUP BY event_type
@@ -57,7 +57,7 @@ export async function getTopPages(filter: AnalyticsFilter, limit: number) {
   const rows = await prisma.$queryRaw<Array<{ url: string; count: bigint }>>`
     SELECT url, COUNT(*)::bigint AS count
     FROM events
-    WHERE workspace_id = ${filter.workspaceId}
+    WHERE workspace_id = ${filter.workspaceId}::uuid
       ${start ? Prisma.sql`AND timestamp >= ${start}` : Prisma.empty}
       ${end ? Prisma.sql`AND timestamp <= ${end}` : Prisma.empty}
     GROUP BY url
@@ -80,7 +80,7 @@ export async function getEventsOverTime(
     SELECT DATE_TRUNC(${granularity}, timestamp) AS bucket,
            COUNT(*)::bigint AS count
     FROM events
-    WHERE workspace_id = ${filter.workspaceId}
+    WHERE workspace_id = ${filter.workspaceId}::uuid
       ${start ? Prisma.sql`AND timestamp >= ${start}` : Prisma.empty}
       ${end ? Prisma.sql`AND timestamp <= ${end}` : Prisma.empty}
     GROUP BY bucket

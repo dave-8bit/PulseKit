@@ -9,10 +9,13 @@ import { Router } from "express";
 
 import { eventsRouter } from "./events.route";
 import { healthRouter } from "./health.route";
+import { analyticsRouter } from "./analytics.route";
 
 export const apiRouter = Router();
 
-// Mount /health and /events.
+// Mount /health, /events, and /analytics.
 apiRouter.use(healthRouter);
 apiRouter.use("/events", eventsRouter);
+apiRouter.use("/analytics", analyticsRouter);
+
 
