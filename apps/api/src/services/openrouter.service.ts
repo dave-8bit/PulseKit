@@ -18,6 +18,8 @@ export async function createOpenRouterChatCompletion(
 ): Promise<OpenRouterChatCompletionResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   const model = process.env.OPENROUTER_MODEL;
+  console.log("[OpenRouter] Runtime model:", model);
+
 
   if (!apiKey) throw new Error("OPENROUTER_API_KEY_MISSING");
   if (!model) throw new Error("OPENROUTER_MODEL_MISSING");
@@ -33,6 +35,7 @@ export async function createOpenRouterChatCompletion(
     body: JSON.stringify({
       model,
       messages: req.messages,
+      max_tokens: 256,
     }),
   });
 
