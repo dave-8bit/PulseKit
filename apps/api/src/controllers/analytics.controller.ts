@@ -12,6 +12,7 @@ import {
   eventsOverTimeQuerySchema,
 } from "../validation/analytics.schema";
 import { ZodError } from "zod";
+import { subscribe } from "../services/realtime.service";
 
 type AnalyticsFilter = {
   workspaceId: string;
@@ -72,6 +73,69 @@ export async function getTotalPageViewsController(
 
     console.error(err);
     res.status(500).json({ success: false, error: "Internal Server Error" });
+  }
+}
+
+/**
+ * SSE endpoint: GET /analytics/realtime
+ *
+ * Registers the client with the in-memory realtime pub/sub service and
+ * keeps the connection open so the service can push event notifications.
+ *
+ * Headers follow SSE best practices:
+ *  - Content-Type:   text/event-stream
+ *  - Cache-Control:  no-cache, no-transform
+ *  - Connection:     keep-alive
+ *
+ * An initial "connected" event is sent immediately so the client knows
+ * the stream is established without waiting for the first analytics event.
+ */
+export async function realtimeSSEController(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    const apiToken = req.apiToken;
+    if (typeof apiToken !== "string" || apiToken.length === 0) {
+      res.status(401).json({ success: false, error: "Unauthorized" });
+      return;
+    }
+
+    const workspace = await findWorkspaceByApiToken(apiToken);
+    if (!workspace) {
+      res.status(401).json({ success: false, error: "Unauthorized" });
+      return;
+    }
+
+    // ---- SSE headers ----
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+
+    // Flush headers immediately so the client receives them right away.
+    res.flushHeaders();
+
+    // Send an initial "connected" event to confirm the stream is live.
+    res.write(`event: connected\ndata: {}\n\n`);
+
+    // Register the client with the realtime service.
+    // subscribe() attaches a one‑shot `close` listener that automatically
+    // removes the Response from the subscriber registry when the client
+    // disconnects — no manual cleanup needed here.
+    subscribe(workspace.id, res);
+
+    // Intentionally do NOT call res.end() — the connection stays open.
+    // The `close` event handled inside subscribe() handles cleanup.
+  } catch (err: unknown) {
+    console.error("realtimeSSEController error:", err);
+
+    // If headers haven't been sent yet, respond with 500 JSON.
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: "Internal Server Error" });
+    } else {
+      // Headers already flushed — try to end the stream gracefully.
+      res.end();
+    }
   }
 }
 

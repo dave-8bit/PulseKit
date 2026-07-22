@@ -6,6 +6,7 @@ import {
   getEventsOverTimeController,
   getTopPagesController,
   getTotalPageViewsController,
+  realtimeSSEController,
 } from "../controllers/analytics.controller";
 
 export const analyticsRouter = Router();
@@ -32,5 +33,11 @@ analyticsRouter.get(
   "/events-over-time",
   bearerTokenMiddleware,
   getEventsOverTimeController
+);
+
+analyticsRouter.get(
+  "/realtime",
+  bearerTokenMiddleware,
+  realtimeSSEController
 );
 
