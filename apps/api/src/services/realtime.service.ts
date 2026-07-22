@@ -166,9 +166,11 @@ export function publish(
 
   // Iterate over a snapshot to allow safe mutation during iteration.
   for (const res of Array.from(subs)) {
-    // Lazy eviction: if the response has already ended (e.g. the client
-    // disconnected without a clean close event), remove it.
-    if (res.writableEnded) {
+    // Lazy eviction: if the response has already ended or the underlying
+    // socket has been destroyed (e.g. client disconnected without a clean
+    // close event), remove it.  Both checks are needed because Node.js can
+    // destroy a socket without setting writableEnded.
+    if (res.writableEnded || res.destroyed) {
       removeSubscriber(workspaceId, res);
       continue;
     }

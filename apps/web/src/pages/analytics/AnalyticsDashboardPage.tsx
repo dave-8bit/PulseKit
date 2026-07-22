@@ -144,9 +144,6 @@ export function AnalyticsDashboardPage() {
     const config = getAnalyticsApiConfig()
     const realtime = createRealtimeApi(config, {
       onMessage: handleRealtimeMessage,
-      onError: (err) => {
-        console.error('[realtime] SSE error:', err)
-      },
     })
 
     realtime.connect()

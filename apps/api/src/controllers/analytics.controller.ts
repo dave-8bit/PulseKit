@@ -127,8 +127,6 @@ export async function realtimeSSEController(
     // Intentionally do NOT call res.end() — the connection stays open.
     // The `close` event handled inside subscribe() handles cleanup.
   } catch (err: unknown) {
-    console.error("realtimeSSEController error:", err);
-
     // If headers haven't been sent yet, respond with 500 JSON.
     if (!res.headersSent) {
       res.status(500).json({ success: false, error: "Internal Server Error" });
