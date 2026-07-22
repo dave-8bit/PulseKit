@@ -1,17 +1,19 @@
 /**
  * PulseKit Realtime SSE Client (Phase 7C)
  *
- * Browser-side EventSource client for the backend SSE endpoint at
- * GET /analytics/realtime.
+ * SSE client built on fetch() + ReadableStream, sending the bearer token
+ * via the standard Authorization header — no query-parameter auth.
  *
- * Authentication:
- * The browser EventSource API does not support custom HTTP headers, so the
- * bearer token is passed as a query parameter (?token=...). This is the
- * standard and widely-adopted approach for EventSource-based auth in the
- * browser (used by OpenAI, Stripe, and many others).
+ * Why fetch + ReadableStream instead of the native EventSource API?
+ * - EventSource does not support custom HTTP headers, so it forces
+ *   query-parameter auth, which is rejected by the project's security
+ *   model.
+ * - fetch() with ReadableStream gives us full control over request
+ *   headers (Authorization: Bearer ...), matching the existing API
+ *   client authentication pattern.
  *
- * No UI logic — this module only manages the EventSource lifecycle and
- * delegates events to callbacks provided by the caller.
+ * No UI logic — this module only manages the SSE stream lifecycle and
+ * delegates events to the provided callbacks.
  */
 
 // ---------------------------------------------------------------------------
@@ -52,13 +54,13 @@ export interface RealtimeEventHandlers {
   /** Fired for each analytics event pushed from the server. */
   onMessage?: (event: RealtimeEventPayload) => void
   /**
-   * Fired when an error occurs on the EventSource.
+   * Fired when an error occurs.
    *
-   * Note: The browser fires `onerror` on network failures and when the
-   * connection is closed unexpectedly. Automatic reconnection is NOT
-   * implemented here — the caller can call connect() again if desired.
+   * The error argument may be an Error for network/protocol failures,
+   * or an Event for stream-level issues. Automatic reconnection is NOT
+   * implemented — the caller can call connect() again if desired.
    */
-  onError?: (error: Event) => void
+  onError?: (error: Error | Event) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -69,24 +71,84 @@ export interface RealtimeClient {
   /**
    * Open (or re‑open) the SSE connection.
    *
-   * If a connection is already open, it is closed first before opening a
-   * new one.  Returns the underlying EventSource instance for advanced
-   * use cases (rarely needed).
+   * If a connection is already open, it is aborted first. Returns nothing
+   * — use the callbacks to react to stream events.
    */
-  connect: () => EventSource
+  connect: () => void
 
   /**
    * Close the SSE connection.
    *
-   * Safe to call multiple times.  After calling disconnect(), no further
-   * callbacks will fire.  The underlying EventSource is properly cleaned up.
+   * Safe to call multiple times. After calling disconnect(), no further
+   * callbacks will fire and the underlying request is aborted.
    */
   disconnect: () => void
 }
 
+// ---------------------------------------------------------------------------
+// SSE line parser
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal SSE parser that splits raw byte chunks into SSE messages and
+ * dispatches named events and data-only messages.
+ *
+ * This parser handles:
+ *   - `event: <type>\ndata: <json>\n\n`  (named events)
+ *   - `data: <json>\n\n`                  (unnamed messages)
+ *
+ * Comments (lines starting with `:`) and `id:` / `retry:` fields are
+ * ignored since they are not used by our backend.
+ */
+function createSSEParser(
+  onNamedEvent: (type: string, data: string) => void,
+  onData: (data: string) => void,
+): (chunk: string) => void {
+  let buffer = ''
+
+  return function parse(chunk: string): void {
+    buffer += chunk
+
+    // SSE messages are terminated by a double newline.
+    const parts = buffer.split('\n\n')
+
+    // Keep the last (potentially incomplete) part in the buffer.
+    buffer = parts.pop() ?? ''
+
+    for (const part of parts) {
+      if (part.length === 0) continue
+
+      const lines = part.split('\n')
+      let eventType: string | null = null
+      let data: string | null = null
+
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          eventType = line.slice(7).trim()
+        } else if (line.startsWith('data: ')) {
+          data = line.slice(6)
+        }
+        // `id:`, `retry:`, and comments (`:`) are ignored.
+      }
+
+      if (data === null) continue
+
+      if (eventType) {
+        onNamedEvent(eventType, data)
+      } else {
+        onData(data)
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Factory implementation
+// ---------------------------------------------------------------------------
+
 /**
  * Create a realtime SSE client that connects to the backend analytics
- * SSE endpoint.
+ * SSE endpoint using fetch() + ReadableStream.
  *
  * Usage:
  *
@@ -108,73 +170,106 @@ export function createRealtimeApi(
   handlers: RealtimeEventHandlers,
 ): RealtimeClient {
   const { baseUrl, token } = config
-  let eventSource: EventSource | null = null
+  let abortController: AbortController | null = null
 
-  /** Internal cleanup helper. */
+  /** Internal cleanup helper. Aborts the in-flight request. */
   function cleanup(): void {
-    if (!eventSource) return
-    eventSource.onopen = null
-    eventSource.onmessage = null
-    eventSource.onerror = null
-    eventSource.close()
-    eventSource = null
+    if (abortController) {
+      abortController.abort()
+      abortController = null
+    }
   }
 
   /**
-   * Open (or re‑open) the SSE connection.
+   * Open (or re‑open) the SSE connection via fetch().
    *
-   * The token is passed as a query parameter because the browser's native
-   * EventSource API does not support custom HTTP headers.  The backend
-   * reads it from the query string in addition to the Authorization header.
+   * The bearer token is sent as an HTTP header (Authorization: Bearer ...),
+   * matching the existing API authentication pattern — no query parameters.
    */
-  function connect(): EventSource {
-    // Close any existing connection first.
-    if (eventSource) {
-      cleanup()
-    }
+  function connect(): void {
+    // Abort any existing connection first.
+    cleanup()
+
+    abortController = new AbortController()
+    const { signal } = abortController
 
     const url = new URL('/analytics/realtime', baseUrl)
-    url.searchParams.set('token', token)
 
-    eventSource = new EventSource(url.toString())
+    const parser = createSSEParser(
+      // Named events — e.g. the initial `connected` event.
+      (eventType, eventData) => {
+        if (eventType === 'connected' && eventData === '{}') {
+          handlers.onConnected?.()
+        }
+      },
+      // Unnamed data messages — analytics event payloads.
+      (data) => {
+        try {
+          const parsed = JSON.parse(data) as {
+            type: string
+            payload: RealtimeEventPayload
+          }
 
-    // Handle the initial `connected` event (named SSE event).
-    eventSource.addEventListener('connected', () => {
-      handlers.onConnected?.()
-    })
+          if (parsed.type === 'event' && parsed.payload) {
+            handlers.onMessage?.(parsed.payload)
+          }
+        } catch {
+          // Silently skip malformed JSON.
+        }
+      },
+    )
 
-    // Handle unnamed `data:` events pushed by the realtime service.
-    // The backend publishes messages in the format:
-    //   data: {"type":"event","payload":{...}}
-    eventSource.onmessage = (event: MessageEvent) => {
+    // Kick off the fetch in the background.
+    // We intentionally do not await here — the stream is long-lived.
+    ;(async () => {
       try {
-        const parsed = JSON.parse(event.data) as {
-          type: string
-          payload: RealtimeEventPayload
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'text/event-stream',
+          },
+          signal,
+        })
+
+        if (!response.ok) {
+          handlers.onError?.(new Error(`SSE request failed (${response.status})`))
+          return
         }
 
-        if (parsed.type === 'event' && parsed.payload) {
-          handlers.onMessage?.(parsed.payload)
+        const body = response.body
+        if (!body) {
+          handlers.onError?.(new Error('SSE response body is not readable'))
+          return
         }
-      } catch {
-        // Silently ignore malformed JSON — the stream may include
-        // other SSE messages that don't parse as our event shape.
+
+        const reader = body.getReader()
+        const decoder = new TextDecoder()
+
+        // Read stream chunks until aborted or the stream ends.
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const text = decoder.decode(value, { stream: true })
+          parser(text)
+        }
+      } catch (err: unknown) {
+        // If the abort was intentional (disconnect()), do not fire onError.
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return
+        }
+
+        handlers.onError?.(err instanceof Error ? err : new Error(String(err)))
       }
-    }
-
-    // Forward errors to the caller.
-    eventSource.onerror = (err: Event) => {
-      handlers.onError?.(err)
-    }
-
-    return eventSource
+    })()
   }
 
   /**
-   * Close the SSE connection and clean up all listeners.
+   * Close the SSE connection and clean up all resources.
    *
-   * After this call, no further callbacks will fire and the EventSource
-   * is fully garbage‑collectable.
+   * After this call, no further callbacks will fire and the underlying
+   * fetch request is aborted via AbortController.
    */
   function disconnect(): void {
     cleanup()
