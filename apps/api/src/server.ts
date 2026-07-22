@@ -8,10 +8,6 @@ import { prisma } from "./prisma/client";
 // Minimal ingestion server for analytics events.
 const app = express();
 
-// Config via dotenv (loads .env into process.env)
-// Uses CommonJS require to avoid needing ESM flags.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-require("dotenv/config");
 
 // CORS: restrict browser access to known local dev origins.
 app.use(

@@ -118,11 +118,21 @@ export async function realtimeSSEController(
     // Send an initial "connected" event to confirm the stream is live.
     res.write(`event: connected\ndata: {}\n\n`);
 
+    // ---- SSE heartbeat ----
+    const heartbeatHandle = setInterval(() => {
+      res.write(`:keepalive\n\n`);
+    }, 30_000);
+
     // Register the client with the realtime service.
     // subscribe() attaches a one‑shot `close` listener that automatically
     // removes the Response from the subscriber registry when the client
     // disconnects — no manual cleanup needed here.
     subscribe(workspace.id, res);
+
+    // Clean up the heartbeat timer when the client disconnects.
+    res.once("close", () => {
+      clearInterval(heartbeatHandle);
+    });
 
     // Intentionally do NOT call res.end() — the connection stays open.
     // The `close` event handled inside subscribe() handles cleanup.

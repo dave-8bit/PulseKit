@@ -55,10 +55,14 @@ export function AnalyticsDashboardPage() {
   }, [])
 
   const handleRealtimeMessage = useCallback((event: RealtimeEventPayload) => {
-    // 1. Total Page Views — increment by 1 for each incoming event.
-    setPageViewsTotal((prev) => ({
-      totalPageViews: (prev?.totalPageViews ?? 0) + 1,
-    }))
+    // 1. Total Page Views — increment by 1 only for page_view events,
+    //    matching the backend's getTotalPageViews filter (event_type = "page_view").
+    //    Without this guard, click/custom_event events would inflate the count.
+    if (event.event_type === 'page_view') {
+      setPageViewsTotal((prev) => ({
+        totalPageViews: (prev?.totalPageViews ?? 0) + 1,
+      }))
+    }
 
     // 2. Events by Type — find matching eventType and bump its count,
     //    or append a new entry if unseen.
