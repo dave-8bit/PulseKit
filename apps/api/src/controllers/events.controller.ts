@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 
 import { findWorkspaceByApiToken } from "../services/workspace.service";
 import { createEvent, findExistingEvent } from "../services/event.service";
+import { publish } from "../services/realtime.service";
 import { CoreEventValidator } from "../validation/event.schema";
 import { toPrismaEvent } from "../mappers/event.mapper";
 
@@ -105,6 +106,12 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
         success: true,
         event: storedEvent,
       });
+
+      // Fire-and-forget realtime notification (non-blocking).
+      // publish() writes SSE‑formatted JSON to connected clients for this
+      // workspace.  Errors are isolated per‑client inside publish() and do
+      // not affect the HTTP response.
+      publish(workspaceId, storedEvent);
     } catch (err: unknown) {
       // Race-condition safe behavior:
       // If two identical requests arrive simultaneously, the second may
