@@ -34,6 +34,7 @@ model Event {
   id                 String        @id @default(uuid()) @db.Uuid
   workspace_id       String        @db.Uuid
   event_id           String        @db.Uuid
+  session_id         String?       @db.Uuid
   event_type         CoreEventType
   timestamp          DateTime
   server_received_at DateTime      @default(now())
@@ -42,10 +43,12 @@ model Event {
   properties         Json
   created_at         DateTime      @default(now())
   workspace          Workspace     @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  session            Session?      @relation(fields: [session_id], references: [id], onDelete: SetNull)
 
   @@unique([workspace_id, event_id])
   @@index([workspace_id, timestamp])
   @@index([workspace_id, event_type])
+  @@index([session_id])
   @@map("events")
 }
 
@@ -53,13 +56,15 @@ model Session {
   id           String    @id @db.Uuid
   workspace_id String    @db.Uuid
   user_agent   String
-  ip_hash      String
+  ip_hash      String?
   anonymous_id String?
   started_at   DateTime
   last_seen_at DateTime
   workspace    Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  events       Event[]
 
   @@index([workspace_id, started_at])
+  @@index([workspace_id, anonymous_id])
   @@map("sessions")
 }
 
