@@ -33,6 +33,15 @@ export function toPrismaEvent(input: InternalEvent): Prisma.EventCreateInput {
     url: input.url,
     user_agent: input.user_agent,
     properties: input.properties as unknown as Prisma.InputJsonValue,
+
+    // Optional session association (null when not provided)
+    session: input.session_id
+      ? {
+          connect: {
+            id: input.session_id,
+          },
+        }
+      : undefined,
   };
 }
 

@@ -60,6 +60,18 @@ export interface ClientEvent {
 
   /** Extensible, strictly typed properties bag. */
   properties: CoreEventProperties;
+
+  /**
+   * Optional session identifier.
+   * Supplied by the tracker when session tracking is active.
+   */
+  session_id?: UUIDv4;
+
+  /**
+   * Optional anonymous identifier for session grouping.
+   * Derived by the tracker and opaque to the server.
+   */
+  anonymous_id?: string;
 }
 
 /**

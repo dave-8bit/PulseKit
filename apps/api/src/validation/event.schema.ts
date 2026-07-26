@@ -23,6 +23,10 @@ export const eventSchema = z.object({
 
   // JSON properties bag (Prisma accepts nested JSON: object/array/scalar/null)
   properties: z.any(),
+
+  // Optional session tracking fields (backwards-compatible)
+  session_id: z.string().uuid().optional(),
+  anonymous_id: z.string().optional(),
 });
 
 export type CoreEventInput = z.input<typeof eventSchema>;
