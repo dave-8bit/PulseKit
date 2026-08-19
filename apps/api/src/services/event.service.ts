@@ -34,7 +34,7 @@ export async function findExistingEvent(
 }
 
 /**
- * Create a new event.
+ * Create a new event (standalone, no transaction).
  *
  * Why the input type matters:
  * - By accepting `Prisma.EventCreateInput` we keep this service strongly typed.
@@ -45,6 +45,21 @@ export async function createEvent(
   eventData: Prisma.EventCreateInput
 ) {
   return prisma.event.create({
+    data: eventData,
+  });
+}
+
+/**
+ * Create a new event inside an existing Prisma transaction.
+ *
+ * This is the transaction-aware counterpart of createEvent.
+ * It must be called from within a `prisma.$transaction` callback.
+ */
+export async function createEventWithTx(
+  tx: Prisma.TransactionClient,
+  eventData: Prisma.EventCreateInput
+) {
+  return tx.event.create({
     data: eventData,
   });
 }

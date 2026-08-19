@@ -2,8 +2,10 @@ import type { Request, Response } from "express";
 
 import { ZodError } from "zod";
 
+import { prisma } from "../prisma/client";
 import { findWorkspaceByApiToken } from "../services/workspace.service";
-import { createEvent, findExistingEvent } from "../services/event.service";
+import { findExistingEvent, createEventWithTx } from "../services/event.service";
+import { upsertSession } from "../services/session.service";
 import { publish } from "../services/realtime.service";
 import { CoreEventValidator } from "../validation/event.schema";
 import { toPrismaEvent } from "../mappers/event.mapper";
@@ -99,15 +101,34 @@ export const ingestEvent = async (req: Request, res: Response): Promise<void> =>
 
 
 
-    // Insert event
+    // Transaction: upsert session (when session_id is present) + create event
+    // in a single atomic operation. SSE publish stays outside the transaction.
+    let storedEvent: Awaited<ReturnType<typeof createEventWithTx>>;
+
     try {
-      const storedEvent = await createEvent(prismaEventInput);
+      storedEvent = await prisma.$transaction(async (tx) => {
+        // Step 3: Upsert / touch session (only when session_id is provided)
+        if (internalEvent.session_id) {
+          await upsertSession(tx, {
+            sessionId: internalEvent.session_id,
+            workspaceId,
+            userAgent: internalEvent.user_agent,
+            anonymousId: internalEvent.anonymous_id,
+            timestamp: new Date(internalEvent.timestamp),
+          });
+        }
+
+        // Step 4: Create event inside the same transaction
+        return createEventWithTx(tx, prismaEventInput);
+      });
+
+      // Step 5: Respond (transaction committed successfully)
       res.status(200).json({
         success: true,
         event: storedEvent,
       });
 
-      // Fire-and-forget realtime notification (non-blocking).
+      // Step 6: Fire-and-forget realtime notification (non-blocking).
       // publish() writes SSE‑formatted JSON to connected clients for this
       // workspace.  Errors are isolated per‑client inside publish() and do
       // not affect the HTTP response.
